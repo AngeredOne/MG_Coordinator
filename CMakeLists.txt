@@ -4,7 +4,11 @@ project(CoordinatorServer VERSION 0.1.0)
 include(CTest)
 enable_testing()
 
-add_executable(CoordinatorServer main.cpp)
+aux_source_directory(Sources SRC)
+include_directories(Sources)
+
+add_executable(CoordinatorServer main.cpp ${SRC})
+target_link_libraries(CoordinatorServer -lpthread)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

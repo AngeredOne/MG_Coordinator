@@ -1,5 +1,7 @@
 #include <iostream>
+#include "Server.h"
 
 int main(int, char**) {
-    std::cout << "Hello, world!\n";
+   server::CoordinatorServer coordinator = server::CoordinatorServer();
+   coordinator.Listen();
 }
