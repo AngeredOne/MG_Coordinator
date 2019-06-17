@@ -3,7 +3,6 @@
 
 int main(int, char**) {
 
-   server::CoordinatorServer coordinator = server::CoordinatorServer();
-   coordinator.Listen();
+   marxp::CoordinatorServer::Get().Listen();
 
 }

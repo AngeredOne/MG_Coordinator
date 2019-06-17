@@ -1,4 +1,4 @@
-#include "Server.h"
+#include "Client.h"
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -21,6 +21,11 @@ int main()
                   << e.what() << '\n';
     }
 
+    marxp::MarxInitRequest *initRequest = new marxp::MarxInitRequest;
+
+    initRequest->command = 0x0001;
+    marxp::SendPacket(uSocket, initRequest);
+
     std::string LogIn;
     std::string Pass;
 
@@ -30,13 +35,12 @@ int main()
     std::cout << "Enter Password:\n";
     getline(std::cin, Pass, '\n');
 
-    marxp::MarxInitRequest *initRequest = new marxp::MarxInitRequest;
 
-    initRequest->command = server::OP_CODES::Auth;
 
+    initRequest->command = 0x0003;
     marxp::MyData *authData = new marxp::MyData;
 
-    authData->Test = LogIn;
+    strcpy(authData->Test, LogIn.c_str());
     strcpy(authData->out, Pass.c_str());
 
     marxp::SendPacket(uSocket, initRequest);

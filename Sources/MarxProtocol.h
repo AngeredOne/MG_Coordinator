@@ -7,6 +7,9 @@
 typedef std::shared_ptr<asio::ip::tcp::socket> socket_ptr;
 typedef asio::io_service n_io_service; //net input\output service
 typedef asio::ip::tcp tcp;
+typedef u_int16_t uint16;
+typedef u_int32_t uint32;
+typedef u_int64_t uint64;
 
 namespace marxp
 {
@@ -25,7 +28,6 @@ struct MarxInitPacket : public MarxPacket
 struct MarxInitRequest : public MarxPacket
 {
     u_int32_t command;
-    char authToken[16];
 };
 
 struct MarxData : public MarxPacket
@@ -38,15 +40,7 @@ T *ReadPacket(socket_ptr socket)
 {
     T *packet = new T();
     size_t len = 0;
-    try
-    {
-        len = socket->read_some(asio::buffer(packet, sizeof(T)));
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Error while reading data from netStream:\n"
-                  << e.what() << '\n';
-    }
+    len = socket->read_some(asio::buffer(packet, sizeof(T)));
     return packet;
 }
 
@@ -56,10 +50,15 @@ bool SendPacket(socket_ptr socket, T *packetToSend)
     socket->write_some(asio::buffer(packetToSend, sizeof(T)));
 }
 
+// std::string GetString(char arr[])
+// {
+//     std::string value = std::string(std::string(arr, sizeof(arr)).data());
+//     return value;
+// }
+
 struct MyData : public marxp::MarxPacket
 {
-
-    std::string Test = "";
+    char Test[16];
     char out[4];
 };
 
