@@ -21,9 +21,20 @@ int main()
                   << e.what() << '\n';
     }
 
-    marxp::MarxInitRequest *initRequest = new marxp::MarxInitRequest;
+    struct AuthData
+    {
+        char name[16];
+        char pass[32];
+    };
 
-    initRequest->command = 0x0001;
+    struct Command
+    {
+        uint16 commandCode;
+    };
+
+    Command *initRequest = new Command;
+
+    initRequest->commandCode = 0x0001;
     marxp::SendPacket(uSocket, initRequest);
 
     std::string LogIn;
@@ -35,16 +46,26 @@ int main()
     std::cout << "Enter Password:\n";
     getline(std::cin, Pass, '\n');
 
+    initRequest->commandCode = 0x0003;
+    AuthData *authData = new AuthData;
 
+    strcpy(authData->name, LogIn.c_str());
+    strcpy(authData->pass, Pass.c_str());
 
-    initRequest->command = 0x0003;
-    marxp::MyData *authData = new marxp::MyData;
-
-    strcpy(authData->Test, LogIn.c_str());
-    strcpy(authData->out, Pass.c_str());
-
-    marxp::SendPacket(uSocket, initRequest);
     marxp::SendPacket(uSocket, authData);
+
+    while(true)
+    {
+        try
+        {
+             auto req = marxp::ReadPacket<Command>(uSocket);
+        }
+        catch(const std::exception& e)
+        {
+            break;
+            std::cerr << e.what() << '\n';
+        }
+    }
 
     return 0;
 }

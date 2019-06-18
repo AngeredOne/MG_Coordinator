@@ -1,35 +1,59 @@
 #include "ServerClient.h"
+#include <chrono>
 
 using namespace marxp;
 
-ServerClient::ServerClient(socket_ptr socket) : socket(socket)
+ServerClient::ServerClient(uint64 token, uint64 DataBaseID) : authtoken(token), dbid(DataBaseID)
 {
-    clientListenerThread = std::make_shared<std::thread>(&ServerClient::Listen, this);
+    // Some specs here
 }
 
-void ServerClient::Init()
+void ServerClient::InitClient(socket_ptr sock)
 {
-    clientListenerThread = std::make_shared<std::thread>(&ServerClient::Listen, this);
+    this->socket = sock;
+    if (!clientListenerThread)
+    {
+        clientListenerThread = std::make_shared<std::thread>(&ServerClient::WaitMessages, this);
+    }
 }
 
-void ServerClient::Listen()
+void ServerClient::WaitMessages()
 {
     while (true)
     {
         try
         {
-            auto request = marxp::ReadPacket<marxp::MarxInitRequest>(socket);
+            struct InitRequest
+            {
+                uint16 command;
+            };
+
+            auto request = marxp::ReadPacket<InitRequest>(socket);
             CoordinatorServer::Get().CallHandler(static_cast<OP_CODES>(request->command), shared_from_this());
         }
         catch (const std::exception &e)
         {
-            CoordinatorServer::Get().DisconnectClient(shared_from_this());
+            if(WaitToFullDisconnect())
             break;
         }
     }
 }
 
-void ServerClient::WaitToFullDisconnect()
+bool ServerClient::WaitToFullDisconnect()
 {
-    //Waiter
+    float time = 0.f;
+    while (!IsReconncted)
+    {
+        if (time >= timeForReconnect)
+        {
+            CoordinatorServer::Get().DisconnectClient(shared_from_this());
+            return true;
+        }
+        else
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            time += 100.f / 1000.f;
+        }
+    }
+    return false;
 }

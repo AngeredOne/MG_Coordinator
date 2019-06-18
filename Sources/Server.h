@@ -5,6 +5,7 @@
 #include <list>
 #include "Lobby.h"
 #include "DataBaseWorker.h"
+#include <cstdio>
 
 class ServerClient;
 
