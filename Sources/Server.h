@@ -3,32 +3,44 @@
 #include "MarxProtocol.h"
 #include <thread>
 #include <list>
-#include "Lobby.h"
 #include "DataBaseWorker.h"
 #include <cstdio>
+#include <mutex>
 
 class ServerClient;
+
+typedef std::shared_ptr<ServerClient> client_ptr;
+typedef std::function<void(client_ptr)> HandlerDelegate;
 
 namespace marxp
 {
 
-typedef std::function<void(std::shared_ptr<ServerClient>)> HandlerDelegate;
-
-enum OP_CODES : uint32
+enum OP_CODES : uint16
 {
-    SetConn = 0x0001,
-    ReConn = 0x0002,
-    Auth = 0x0003,
-    Reg = 0x00004,
-    GetFriends,
-    GetSessions,
-    GetCurrentSession
+    MAIN_SetConn = 0x00001,
+    MAIN_ReConn = 0x00002,
+    MAIN_Reg,
+    GC_Games_Info,
+    GC_Games_AllLobby,
+    GC_Lobby_Info,
+    GC_Lobby_Create,
+    GC_Lobby_Join,
+    GC_Lobby_Destroy,
+    GC_Lobby_StartGame
+};  
+
+struct Lobby
+{
+    uint32 id;
+    std::list<int> clientsHash;
 };
+typedef std::pair<uint32, Lobby> LobbyInfo;
+typedef std::map<uint16, std::map<LobbyInfo::first_type, LobbyInfo::second_type>> LobbyMap; 
 
 class CoordinatorServer
 {
 
-public: 
+public:
     void Listen();
 
     void BindHandler(OP_CODES code, HandlerDelegate handler);
@@ -36,25 +48,29 @@ public:
 
     void DisconnectClient(std::shared_ptr<ServerClient> client);
 
-    static CoordinatorServer& Get();
+    static CoordinatorServer &Get();
+
+    void WriteMessage(std::string msg);
+    std::vector<Lobby> GetLobbiesInfoByGameId(uint16 gameid);
+    void RegLobby(Lobby lb, uint16 gameid);
 
 private:
-
     CoordinatorServer();
 
-    CoordinatorServer(const CoordinatorServer&) = delete;
-    CoordinatorServer operator=(const CoordinatorServer&) = delete;
+    CoordinatorServer(const CoordinatorServer &) = delete;
+    CoordinatorServer operator=(const CoordinatorServer &) = delete;
+
+    std::mutex coutMutex;
 
     std::map<uint64, std::shared_ptr<ServerClient>> clients;
     std::map<OP_CODES, HandlerDelegate> handlersTable;
-    std::list<Lobby> lobbies;
+    
+    LobbyMap gamesLobbies;
     tcp::acceptor *acceptor;
     uint16 port = 25565;
 
     void HandleRequest(socket_ptr client);
     uint64 GetAuthToken();
-
-    void WriteMessage(std::string msg);
 };
 
-} // namespace server
+} // namespace marxp

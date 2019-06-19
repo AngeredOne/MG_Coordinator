@@ -57,3 +57,13 @@ bool ServerClient::WaitToFullDisconnect()
     }
     return false;
 }
+
+const socket_ptr ServerClient::GetSocket()
+{
+    return socket;
+}
+
+const uint64 ServerClient::GetAuthToken() 
+{
+    return authtoken;
+}

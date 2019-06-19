@@ -4,22 +4,21 @@
 
 class ServerClient : public std::enable_shared_from_this<ServerClient>
 {
-    public:
-
+public:
     uint64 authtoken;
     uint64 dbid;
     bool IsReconncted = false;
     ServerClient(uint64 token, uint64 DataBaseID);
     void InitClient(socket_ptr socket);
+    const uint64 GetAuthToken(); 
+    const socket_ptr GetSocket();
 
-    private:
-
+private:
     void WaitMessages();
     bool WaitToFullDisconnect();
-    std::weak_ptr<Lobby> inLobby;    
     socket_ptr socket;
     std::shared_ptr<std::thread> clientListenerThread = nullptr;
-    
+
     //Time for reconnect in seconds
     float timeForReconnect = 10;
 };

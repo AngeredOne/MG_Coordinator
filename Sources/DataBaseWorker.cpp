@@ -73,7 +73,6 @@ TableResult DataBaseWorker::GetResponseByRequest(std::string sql)
 {
     TableResult tableResult;
     auto conn = GetFreeConnection();
-    std::cout << "Using " << conn.id << " connection.";
 
     //PQsendQuery(conn.pgconn.get(), sql.c_str());
     auto result = PQexec(conn.pgconn.get(), sql.c_str());

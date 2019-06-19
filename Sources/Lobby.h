@@ -1,8 +1,7 @@
 #pragma once
 #include <list>
-class Lobby
+struct Lobby
 {
-    int id;
+    uint32 id;
     std::list<int> clientsHash;
-
 };
