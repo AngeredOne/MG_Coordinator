@@ -26,13 +26,14 @@ void CoordinatorServer::Listen()
         gamesLobbies.insert(std::pair<uint16, std::map<uint32, Lobby>>(atoi(gameId.get()), std::map<uint32, Lobby>()));
     }
 
-    std::cout << "Lobbies map initialized.\n";
+    std::cout << "Lobbies map initialized.\n\n";
 
     std::cout << "Server begin listening." << std::endl;
     while (true)
     {
         socket_ptr sock(new tcp::socket(service));
         acceptor->accept(*sock);
+        std::cout << "Marx client requested connection set: " << sock << std::endl;
         std::thread *handler = new std::thread(&CoordinatorServer::HandleRequest, this, sock);
     }
 }
@@ -176,7 +177,7 @@ std::vector<Lobby> CoordinatorServer::GetLobbiesInfoByGameId(uint16 gameID)
 void CoordinatorServer::RegLobby(Lobby lb, uint16 gameId)
 {
     static uint32 lid;
-    
+
     lb.id = lid;
     LobbyInfo lInfo(lid, lb);
     lid++;
@@ -184,5 +185,16 @@ void CoordinatorServer::RegLobby(Lobby lb, uint16 gameId)
     if (auto gamePair = gamesLobbies.find(gameId); gamePair != gamesLobbies.end())
     {
         gamePair->second.insert(lInfo);
+    }
+}
+
+Lobby* CoordinatorServer::GetLobbyById(uint16 gameid, uint32 lobbyid)
+{
+    if(auto gameLobby = gamesLobbies.find(gameid); gameLobby != gamesLobbies.end())
+    {
+        if(auto lobby = gameLobby->second.find(lobbyid); lobby != gameLobby->second.end())
+        {
+            return &lobby->second;
+        }
     }
 }

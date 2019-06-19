@@ -26,7 +26,8 @@ enum OP_CODES : uint16
     GC_Lobby_Create,
     GC_Lobby_Join,
     GC_Lobby_Destroy,
-    GC_Lobby_StartGame
+    GC_Lobby_StartGame,
+    GC_Players_Info,
 };  
 
 struct Lobby
@@ -53,6 +54,7 @@ public:
     void WriteMessage(std::string msg);
     std::vector<Lobby> GetLobbiesInfoByGameId(uint16 gameid);
     void RegLobby(Lobby lb, uint16 gameid);
+    Lobby* GetLobbyById(uint16 gameid, uint32 lobbyid);
 
 private:
     CoordinatorServer();
