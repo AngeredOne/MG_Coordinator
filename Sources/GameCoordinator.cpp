@@ -63,8 +63,8 @@ void GameCoordinator::GetAllLobbiesInfoByGameId(client_ptr client)
     Lobby *lobby = new Lobby[count];
     for (int i = 0; i < count; ++i)
     {
-        lobby[i].lobbyid = lobbys[i].id;
-        lobby[i].playerscount = lobbys[i].clientsHash.size();
+        lobby[i].lobbyid = lobbys[i]->id;
+        lobby[i].playerscount = lobbys[i]->clients.size();
     }
     SendDynamic(client->GetSocket(), lobby, count);
     delete[] lobby;
@@ -82,9 +82,10 @@ void GameCoordinator::CreateLobby(client_ptr client)
     };
     auto info = ReadPacket<LobbyCreationInfo>(client->GetSocket());
 
-    Lobby newLobby;
-    newLobby.clientsHash.push_back(client->GetAuthToken());
+    lobby_ptr newLobby = std::make_shared<Lobby>();
     CoordinatorServer::Get().RegLobby(newLobby, info->game);
+    
+    client->JoinLobby(newLobby);
 }
 
 void GameCoordinator::JoinLobby(client_ptr client)
@@ -94,11 +95,11 @@ void GameCoordinator::JoinLobby(client_ptr client)
         uint16 game;
         uint32 lobbyid;
     };
-    auto info = ReadPacket<LobbyJoiningInfo>(client->GetSocket()); //еще забыли что у клиента есть поле лобби или типа того
+    auto info = ReadPacket<LobbyJoiningInfo>(client->GetSocket());
     auto lobby = CoordinatorServer::Get().GetLobbyById(info->game, info->lobbyid);
     if (lobby)
     {
-        lobby->clientsHash.push_back(client->GetAuthToken());
+        client->JoinLobby(lobby);
     }
 }
 
@@ -129,7 +130,9 @@ void GameCoordinator::GetInfoAboutPlayers(client_ptr client)
             auto names = responseDB["Name"];
             for (int i = 0; i < names.size(); i++)
             {
-                strcpy(users[i].name, names[i].get());
+                users[i] = UserData();
+                auto s = std::string(names[i].get());
+                strcpy(users[i].name, s.c_str() );
             }   
             SendDynamic(client->GetSocket(), users, names.size());
         }

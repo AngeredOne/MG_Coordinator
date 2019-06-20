@@ -71,3 +71,22 @@ const uint64 ServerClient::GetAuthToken()
 {
     return authtoken;
 }
+
+bool ServerClient::JoinLobby(lobby_ptr lobby) {
+    ExitLobby();
+    lobby->clients.push_back(authtoken);
+    inLobby = lobby;
+
+    return true;
+}
+
+void ServerClient::ExitLobby() {
+    if (auto existsLobby = inLobby.lock()) {
+        existsLobby->clients.remove(authtoken);
+        if (existsLobby->clients.size() == 0) {
+            CoordinatorServer::Get().CloseLobby(existsLobby->gameid, existsLobby->id);
+        }
+        inLobby = std::weak_ptr<Lobby>();
+    
+    }    
+}

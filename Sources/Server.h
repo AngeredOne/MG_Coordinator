@@ -33,9 +33,11 @@ enum OP_CODES : uint16
 struct Lobby
 {
     uint32 id;
-    std::list<int> clientsHash;
+    uint32 gameid;
+    std::list<uint64> clients;
 };
-typedef std::pair<uint32, Lobby> LobbyInfo;
+typedef std::shared_ptr<Lobby> lobby_ptr;
+typedef std::pair<uint32, lobby_ptr> LobbyInfo;
 typedef std::map<uint16, std::map<LobbyInfo::first_type, LobbyInfo::second_type>> LobbyMap; 
 
 class CoordinatorServer
@@ -52,9 +54,10 @@ public:
     static CoordinatorServer &Get();
 
     void WriteMessage(std::string msg);
-    std::vector<Lobby> GetLobbiesInfoByGameId(uint16 gameid);
-    void RegLobby(Lobby lb, uint16 gameid);
-    Lobby* GetLobbyById(uint16 gameid, uint32 lobbyid);
+    std::vector<lobby_ptr> GetLobbiesInfoByGameId(uint16 gameid);
+    void RegLobby(lobby_ptr lb, uint16 gameid);
+    void CloseLobby(uint32 gameid, uint32 lobbyid);
+    lobby_ptr GetLobbyById(uint16 gameid, uint32 lobbyid);
 
 private:
     CoordinatorServer();

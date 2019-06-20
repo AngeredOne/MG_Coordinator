@@ -4,36 +4,34 @@
 using namespace marxp;
 
 void CoordinatorServer::Listen()
-{
+{    //Start and initialize DB
+    DataBaseWorker::Get().StartDataBase();
+
+    std::cout << "Getting all games ids and initializing lobbies map.\n";
+
+    boost::format requestDB(R"_(SELECT "Games"."id" FROM "Games")_");
+    auto responseDB = DataBaseWorker::Get().GetResponseByRequest(requestDB.str());
+
+    for (auto gameId : responseDB["id"])
+    {
+        gamesLobbies.insert(std::pair<uint16, std::map<uint32, lobby_ptr>>(atoi(gameId.get()), std::map<uint32, lobby_ptr>()));
+    }
+
+    std::cout << "Lobbies map initialized. GamesCount: " << responseDB["id"].size() << std::endl;
+
+
     n_io_service service; //boost io-service
 
     //tcp listener config
     tcp::endpoint listenEP(ip::tcp::v4(), port);
     acceptor = new tcp::acceptor(service, listenEP);
 
-    std::cout << "Server started.\n\n";
-
-    //Start and initialize DB
-    DataBaseWorker::Get().StartDataBase();
-
-    std::cout << "Getting all games ids and initializing lobbies map.\n";
-
-    boost::format requestDB(R"_(SELECT * FROM "Games")_");
-    auto responseDB = DataBaseWorker::Get().GetResponseByRequest(requestDB.str());
-
-    for (auto gameId : responseDB["id"])
-    {
-        gamesLobbies.insert(std::pair<uint16, std::map<uint32, Lobby>>(atoi(gameId.get()), std::map<uint32, Lobby>()));
-    }
-
-    std::cout << "Lobbies map initialized.\n\n";
-
-    std::cout << "Server begin listening." << std::endl;
+    std::cout << "Server begin listening at port " << port << std::endl;
     while (true)
     {
         socket_ptr sock(new tcp::socket(service));
         acceptor->accept(*sock);
-        std::cout << "Marx client requested connection set: " << sock << std::endl;
+        std::cout << "Marx client requested connection set. IP: " << sock->local_endpoint().address().to_string() << std::endl;
         std::thread *handler = new std::thread(&CoordinatorServer::HandleRequest, this, sock);
     }
 }
@@ -161,9 +159,9 @@ void CoordinatorServer::DisconnectClient(std::shared_ptr<ServerClient> client)
     std::cout << "Deleted client!11!!\n";
 }
 
-std::vector<Lobby> CoordinatorServer::GetLobbiesInfoByGameId(uint16 gameID)
+std::vector<lobby_ptr> CoordinatorServer::GetLobbiesInfoByGameId(uint16 gameID)
 {
-    std::vector<Lobby> lobbies;
+    std::vector<lobby_ptr> lobbies;
     if (auto lobbiesList = gamesLobbies.find(gameID); lobbiesList != gamesLobbies.end())
     {
         for (auto lobby : (*lobbiesList).second)
@@ -174,11 +172,11 @@ std::vector<Lobby> CoordinatorServer::GetLobbiesInfoByGameId(uint16 gameID)
     return lobbies;
 }
 
-void CoordinatorServer::RegLobby(Lobby lb, uint16 gameId)
+void CoordinatorServer::RegLobby(lobby_ptr lb, uint16 gameId)
 {
     static uint32 lid;
 
-    lb.id = lid;
+    lb->id = lid;
     LobbyInfo lInfo(lid, lb);
     lid++;
 
@@ -188,13 +186,22 @@ void CoordinatorServer::RegLobby(Lobby lb, uint16 gameId)
     }
 }
 
-Lobby* CoordinatorServer::GetLobbyById(uint16 gameid, uint32 lobbyid)
+lobby_ptr CoordinatorServer::GetLobbyById(uint16 gameid, uint32 lobbyid)
 {
     if(auto gameLobby = gamesLobbies.find(gameid); gameLobby != gamesLobbies.end())
     {
         if(auto lobby = gameLobby->second.find(lobbyid); lobby != gameLobby->second.end())
         {
-            return &lobby->second;
+            return lobby->second;
+        }
+    }
+}
+void CoordinatorServer::CloseLobby(uint32 gameid, uint32 lobbyid) {
+    if(auto gameLobby = gamesLobbies.find(gameid); gameLobby != gamesLobbies.end())
+    {
+        if(auto lobby = gameLobby->second.find(lobbyid); lobby != gameLobby->second.end())
+        {
+            gameLobby->second.erase(lobbyid);
         }
     }
 }
