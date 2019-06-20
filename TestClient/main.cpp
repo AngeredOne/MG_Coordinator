@@ -55,12 +55,40 @@ int main()
     };
 
     // Send "GetGames(GetAllGamesInfo)" request
-    marxp::SendPacket(uSocket, new uint16(0x00004));
-    auto allGames = marxp::ReadDynamic<GameData>(uSocket);
+    
+    //CreateLobby with gameid 0
+    marxp::SendPacket(uSocket, new uint16(0x00007));
+    marxp::SendPacket(uSocket, new uint16(0));
 
     //CreateLobby with gameid 0
     marxp::SendPacket(uSocket, new uint16(0x00007));
     marxp::SendPacket(uSocket, new uint16(0));
+
+
+    //CreateLobby with gameid 0
+    marxp::SendPacket(uSocket, new uint16(0x00007));
+    marxp::SendPacket(uSocket, new uint16(0));
+
+
+    //CreateLobby with gameid 0
+    marxp::SendPacket(uSocket, new uint16(0x00007));
+    marxp::SendPacket(uSocket, new uint16(0));
+
+
+
+    marxp::SendPacket(uSocket, new uint16(5));
+    marxp::SendPacket(uSocket, new uint16(0));
+    struct Lobby
+    {
+        uint32 lobbyid;
+        uint32 playerscount;
+    };
+    auto lobbies = marxp::ReadDynamic<Lobby>(uSocket);
+
+    for (auto lobby : lobbies) {
+        std::cout << lobby->lobbyid << " " <<lobby->playerscount << std::endl;;
+    }
+    
 
     //Show info about playres
     marxp::SendPacket(uSocket, new uint16(11));
@@ -78,19 +106,6 @@ int main()
 
     for (auto user : userData) {
         std::cout << std::string(user.get()->name, 32) << std::endl;
-    }
-
-    struct Lobby
-    {
-        uint32 lobbyid;
-        uint32 playerscount;
-    };
-
-    auto lobbies = marxp::ReadDynamic<Lobby>(uSocket);
-    std::cout << "Lobbies list:\n";
-    for (auto lb : lobbies)
-    {
-        std::cout << "Lobby: " << lb->lobbyid << " with " << lb->playerscount << " players\n";
     }
 
     return 0;

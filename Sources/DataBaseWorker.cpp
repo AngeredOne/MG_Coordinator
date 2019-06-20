@@ -16,11 +16,10 @@ void DataBaseWorker::StartDataBase()
 {
     std::cout << "DataBaseWorker starting.." << std::endl;
     std::cout << "Initializing connections.." << std::endl;
-    std::cout << "\n";
 
     for (int i = 0; i < CONN_SIZE; ++i)
     {
-        PGconn *conn_raw = PQsetdbLogin("127.0.0.1", "5432", NULL, NULL, "ProjectOffice", "CoordinatorServer", "SuperSecretPassword1337&");
+        PGconn *conn_raw = PQsetdbLogin("5.167.17.110", "5432", NULL, NULL, "ProjectOffice", "CoordinatorServer", "SuperSecretPassword1337&");
         std::shared_ptr<PGconn> conn_ptr(conn_raw, &PQfinish);
         Connection conn{i, conn_ptr, true};
         connections.push_back(conn);
@@ -29,22 +28,15 @@ void DataBaseWorker::StartDataBase()
         {
             std::cout << "Establishing connection " << i << "..." << std::endl;
         }
-        else if (status == ConnStatusType::CONNECTION_OK)
-        {
-            std::cout << "Connection " << i << " ready." << std::endl;
-        }
         else if (status == ConnStatusType::CONNECTION_BAD)
         {
             std::cout << "Connection " << i << " error!\nError massage: " << PQerrorMessage(conn_raw) << std::endl;
         }
     }
 
-    std::cout << "\nDataBase testing:\n\n";
+    std::cout << connections.size() << " connections is ready to go!" << std::endl;;
 
-    PrintResult(GetResponseByRequest("SELECT * FROM \"Users\""));
-
-    std::cout << "\nDataBase ready!\n"
-              << std::endl;
+    std::cout << "DataBaseWorker is done \n\n";
 }
 
 Connection DataBaseWorker::GetFreeConnection()
