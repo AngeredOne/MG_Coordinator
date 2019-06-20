@@ -3,6 +3,7 @@
 #include <boost/asio.hpp>
 #include <iostream>
 #include <type_traits>
+#include <exception>
 
 using namespace boost::asio;
 
@@ -24,8 +25,11 @@ std::shared_ptr<T> ReadPacket(socket_ptr socket)
     auto sock = socket.get();
     std::shared_ptr<T> packet_ptr = std::make_shared<T>();
 
-    std::size_t length = read(*sock, buffer(packet_ptr.get(), sizeof(*packet_ptr.get())), ec);
-
+    std::size_t length = socket->read_some(buffer(packet_ptr.get(), sizeof(*packet_ptr.get())), ec);
+    if (length < sizeof(T))
+    {
+        throw std::invalid_argument("The number of bytes received is less than expected.");
+    }
     return packet_ptr;
 }
 
@@ -40,11 +44,17 @@ std::vector<std::shared_ptr<T>> ReadDynamic(socket_ptr socket)
     char *collection_raw = new char[size];
     auto sock = socket.get();
 
-    std::size_t length = read(*sock, buffer(collection_raw, size), ec);
-    T* collection = reinterpret_cast<T*>(collection_raw);
+    std::size_t length = socket->read_some(buffer(collection_raw, size), ec);
+
+    if (length < size)
+    {
+        throw std::invalid_argument("The number of bytes received is less than expected.");
+    }
+
+    T *collection = reinterpret_cast<T *>(collection_raw);
 
     std::vector<std::shared_ptr<T>> out;
-    
+
     for (int i = 0; i < *count.get(); ++i)
     {
         out.push_back(std::make_shared<T>(collection[i]));
@@ -60,11 +70,11 @@ bool SendPacket(socket_ptr socket, T *packetToSend)
 
     auto sock = socket.get();
 
-    std::size_t length = write(*sock, buffer(packetToSend, sizeof(*packetToSend)), ec);
+    std::size_t length = socket->write_some(buffer(packetToSend, sizeof(*packetToSend)), ec);
 }
 
 template <class T>
-bool SendDynamic(socket_ptr socket, T* structToSend, uint16 count)
+bool SendDynamic(socket_ptr socket, T *structToSend, uint16 count)
 {
     boost::system::error_code ec;
 
@@ -76,7 +86,7 @@ bool SendDynamic(socket_ptr socket, T* structToSend, uint16 count)
 
     auto sock = socket.get();
 
-    std::size_t length = write(*sock, buffer(toSendChar, size), ec);
+    std::size_t length = socket->write_some(buffer(toSendChar, size), ec);
     delete[] toSendChar;
 }
 

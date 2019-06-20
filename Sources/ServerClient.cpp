@@ -31,6 +31,10 @@ void ServerClient::WaitMessages()
             auto request = marxp::ReadPacket<InitRequest>(socket);
             CoordinatorServer::Get().CallHandler(static_cast<OP_CODES>(request->command), shared_from_this());
         }
+        catch(const std::invalid_argument &e)
+        {
+            std::cout << "SoSi HuI";
+        }
         catch (const std::exception &e)
         {
             if(WaitToFullDisconnect())
