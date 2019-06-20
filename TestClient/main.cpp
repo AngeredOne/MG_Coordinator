@@ -56,6 +56,21 @@ int main()
 
     // Send "GetGames(GetAllGamesInfo)" request
     
+
+    //Show info about playres
+    marxp::SendPacket(uSocket, new uint16(11));
+    uint64 * players = new uint64[2];
+    players[0] = 1;
+    players[1] = 2;
+    marxp::SendDynamic(uSocket, players, 2);
+    struct UserData
+    {
+        char name[32];
+    };
+    auto userData = marxp::ReadDynamic<UserData>(uSocket);
+    for (auto user : userData) {
+        std::cout << std::string(user.get()->name, 32) << std::endl;
+    }
     //CreateLobby with gameid 0
     marxp::SendPacket(uSocket, new uint16(0x00007));
     marxp::SendPacket(uSocket, new uint16(0));
@@ -89,24 +104,6 @@ int main()
         std::cout << lobby->lobbyid << " " <<lobby->playerscount << std::endl;;
     }
     
-
-    //Show info about playres
-    marxp::SendPacket(uSocket, new uint16(11));
-
-    uint64 * players = new uint64[2];
-    players[0] = 1;
-    players[1] = 2;
-
-    marxp::SendDynamic(uSocket, players, 2);
-    struct UserData
-    {
-        char name[32];
-    };
-    auto userData = marxp::ReadDynamic<UserData>(uSocket);
-
-    for (auto user : userData) {
-        std::cout << std::string(user.get()->name, 32) << std::endl;
-    }
 
     return 0;
 }

@@ -130,7 +130,9 @@ void GameCoordinator::GetInfoAboutPlayers(client_ptr client)
             auto names = responseDB["Name"];
             for (int i = 0; i < names.size(); i++)
             {
-                strcpy(users[i].name, names[i].get());
+                users[i] = UserData();
+                auto s = std::string(names[i].get());
+                strcpy(users[i].name, s.c_str() );
             }   
             SendDynamic(client->GetSocket(), users, names.size());
         }
