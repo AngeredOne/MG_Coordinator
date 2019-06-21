@@ -1,14 +1,25 @@
 #pragma once
 
-#include "MarxProtocol.h"
 #include <thread>
 #include <list>
-#include "DataBaseWorker.h"
 #include <cstdio>
 #include <mutex>
+#include <vector>
+#include <iostream>
+#include <type_traits>
+#include <exception>
+#include <boost/asio.hpp>
+#include "DataBaseWorker.h"
 
 class ServerClient;
+using namespace boost::asio;
 
+typedef std::shared_ptr<ip::tcp::socket> socket_ptr;
+typedef io_service n_io_service; //net input\output service
+typedef ip::tcp tcp;
+typedef u_int16_t uint16;
+typedef u_int32_t uint32;
+typedef u_int64_t uint64;
 typedef std::shared_ptr<ServerClient> client_ptr;
 typedef std::function<void(client_ptr)> HandlerDelegate;
 
@@ -28,7 +39,15 @@ enum OP_CODES : uint16
     GC_Lobby_Destroy,
     GC_Lobby_StartGame,
     GC_Players_Info,
-};  
+};
+
+struct ReadWriteBytesCountException : public std::exception
+{
+    const char *what() const throw()
+    {
+        return "The number of bytes (received\send) is less than expected.";
+    }
+};
 
 struct Lobby
 {
@@ -38,7 +57,7 @@ struct Lobby
 };
 typedef std::shared_ptr<Lobby> lobby_ptr;
 typedef std::pair<uint32, lobby_ptr> LobbyInfo;
-typedef std::map<uint16, std::map<LobbyInfo::first_type, LobbyInfo::second_type>> LobbyMap; 
+typedef std::map<uint16, std::map<LobbyInfo::first_type, LobbyInfo::second_type>> LobbyMap;
 
 class CoordinatorServer
 {
@@ -59,6 +78,44 @@ public:
     void CloseLobby(uint32 gameid, uint32 lobbyid);
     lobby_ptr GetLobbyById(uint16 gameid, uint32 lobbyid);
 
+    template <class T>
+    std::shared_ptr<T> ReadPacket(socket_ptr socket, bool isBlockable = false)
+    {
+        boost::system::error_code ec;
+
+        auto sock = socket.get();
+        std::shared_ptr<T> packet_ptr = std::make_shared<T>();
+
+        if (isBlockable)
+        {
+            read(*sock, buffer(packet_ptr.get(), sizeof(*packet_ptr.get())), ec);
+        }
+        else
+        {
+            std::size_t length = socket->read_some(buffer(packet_ptr.get(), sizeof(*packet_ptr.get())), ec);
+            if (length < sizeof(T))
+            {
+                throw ReadWriteBytesCountException();
+            }
+        }
+
+        return packet_ptr;
+    }
+
+    template <class T>
+    bool SendPacket(socket_ptr socket, T *packetToSend)
+    {
+        boost::system::error_code ec;
+
+        auto sock = socket.get();
+
+        std::size_t length = socket->write_some(buffer(packetToSend, sizeof(*packetToSend)), ec);
+        if (sizeof(*packetToSend > length))
+        {
+            throw ReadWriteBytesCountException();
+        }
+    }
+
 private:
     CoordinatorServer();
 
@@ -69,7 +126,7 @@ private:
 
     std::map<uint64, std::shared_ptr<ServerClient>> clients;
     std::map<OP_CODES, HandlerDelegate> handlersTable;
-    
+
     LobbyMap gamesLobbies;
     tcp::acceptor *acceptor;
     uint16 port = 25565;

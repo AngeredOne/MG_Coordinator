@@ -31,7 +31,7 @@ void CoordinatorServer::Listen()
     {
         socket_ptr sock(new tcp::socket(service));
         acceptor->accept(*sock);
-        std::cout << "Marx client requested connection set. IP: " << sock->local_endpoint().address().to_string() << std::endl;
+        std::cout << "Marx client request connection set. IP: " << sock->local_endpoint().address().to_string() << ":" << sock->local_endpoint().port() << std::endl;
         std::thread *handler = new std::thread(&CoordinatorServer::HandleRequest, this, sock);
     }
 }
@@ -45,7 +45,7 @@ void CoordinatorServer::HandleRequest(socket_ptr client)
             uint16 command;
         };
 
-        auto initialData = marxp::ReadPacket<InitRequest>(client);
+        auto initialData = ReadPacket<InitRequest>(client);
 
         if (static_cast<OP_CODES>(initialData->command) == OP_CODES::MAIN_SetConn)
         {

@@ -43,7 +43,7 @@ void GameCoordinator::GetAllGamesInfo(client_ptr client)
         allData[i] = data;
     }
 
-    SendDynamic(client->GetSocket(), allData, names.size());
+    client->SendDynamic(allData, names.size());
     delete[] allData;
 }
 
@@ -55,7 +55,7 @@ void GameCoordinator::GetAllLobbiesInfoByGameId(client_ptr client)
         uint32 playerscount;
     };
 
-    auto gameId = ReadPacket<uint16>(client->GetSocket());
+    auto gameId = CoordinatorServer::Get().ReadPacket<uint16>(client->GetSocket());
     auto lobbys = CoordinatorServer::Get().GetLobbiesInfoByGameId(*gameId.get());
 
     auto count = lobbys.size();
@@ -66,7 +66,7 @@ void GameCoordinator::GetAllLobbiesInfoByGameId(client_ptr client)
         lobby[i].lobbyid = lobbys[i]->id;
         lobby[i].playerscount = lobbys[i]->clients.size();
     }
-    SendDynamic(client->GetSocket(), lobby, count);
+    client->SendDynamic(lobby, count);
     delete[] lobby;
 }
 
@@ -80,7 +80,7 @@ void GameCoordinator::CreateLobby(client_ptr client)
     {
         uint16 game;
     };
-    auto info = ReadPacket<LobbyCreationInfo>(client->GetSocket());
+    auto info = CoordinatorServer::Get().ReadPacket<LobbyCreationInfo>(client->GetSocket());
 
     lobby_ptr newLobby = std::make_shared<Lobby>();
     CoordinatorServer::Get().RegLobby(newLobby, info->game);
@@ -95,7 +95,7 @@ void GameCoordinator::JoinLobby(client_ptr client)
         uint16 game;
         uint32 lobbyid;
     };
-    auto info = ReadPacket<LobbyJoiningInfo>(client->GetSocket());
+    auto info = CoordinatorServer::Get().ReadPacket<LobbyJoiningInfo>(client->GetSocket());
     auto lobby = CoordinatorServer::Get().GetLobbyById(info->game, info->lobbyid);
     if (lobby)
     {
@@ -105,7 +105,7 @@ void GameCoordinator::JoinLobby(client_ptr client)
 
 void GameCoordinator::GetInfoAboutPlayers(client_ptr client)
 {
-    auto ids = ReadDynamic<uint64>(client->GetSocket());
+    auto ids = client->ReadDynamic<uint64>();
     std::stringstream stream_id;
 
     auto count = ids.size();
@@ -134,7 +134,7 @@ void GameCoordinator::GetInfoAboutPlayers(client_ptr client)
                 auto s = std::string(names[i].get());
                 strcpy(users[i].name, s.c_str() );
             }   
-            SendDynamic(client->GetSocket(), users, names.size());
+            client->SendDynamic(users, names.size());
         }
     }
 }

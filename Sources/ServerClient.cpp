@@ -28,12 +28,12 @@ void ServerClient::WaitMessages()
                 uint16 command;
             };
 
-            auto request = marxp::ReadPacket<InitRequest>(socket);
+            auto request = CoordinatorServer::Get().ReadPacket<InitRequest>(socket, true);
             CoordinatorServer::Get().CallHandler(static_cast<OP_CODES>(request->command), shared_from_this());
         }
-        catch(const std::invalid_argument &e)
+        catch(const marxp::ReadWriteBytesCountException &e)
         {
-            std::cout << "SoSi HuI";
+            std::cerr << e.what() << std::endl;
         }
         catch (const std::exception &e)
         {
