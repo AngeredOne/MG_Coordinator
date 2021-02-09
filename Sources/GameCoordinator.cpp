@@ -2,6 +2,7 @@
 #include "ServerClient.h"
 #include <boost/format.hpp>
 #include <functional>
+#include "Streams.h"
 
 using namespace marxp;
 #define BIND(X, Y) CoordinatorServer::Get().BindHandler(X, std::bind(&marxp::GameCoordinator::Y, this, std::placeholders::_1));
@@ -43,7 +44,7 @@ void GameCoordinator::GetAllGamesInfo(client_ptr client)
         allData[i] = data;
     }
 
-    client->SendDynamic(allData, names.size());
+    client->SendDynamic(allData, OP_CODES::GC_Games_Info, names.size());
     delete[] allData;
 }
 
@@ -66,7 +67,7 @@ void GameCoordinator::GetAllLobbiesInfoByGameId(client_ptr client)
         lobby[i].lobbyid = lobbys[i]->id;
         lobby[i].playerscount = lobbys[i]->clients.size();
     }
-    client->SendDynamic(lobby, count);
+    client->SendDynamic(lobby,OP_CODES::GC_Games_AllLobby, count);
     delete[] lobby;
 }
 
@@ -105,7 +106,8 @@ void GameCoordinator::JoinLobby(client_ptr client)
 
 void GameCoordinator::GetInfoAboutPlayers(client_ptr client)
 {
-    auto ids = client->ReadDynamic<uint64>();
+    auto stream = client->GetStreamManager()->GetStream(OP_CODES::GC_Players_Info);
+    auto ids = stream->GetAllStructs<uint64>();
     std::stringstream stream_id;
 
     auto count = ids.size();
@@ -134,7 +136,7 @@ void GameCoordinator::GetInfoAboutPlayers(client_ptr client)
                 auto s = std::string(names[i].get());
                 strcpy(users[i].name, s.c_str() );
             }   
-            client->SendDynamic(users, names.size());
+            client->SendDynamic(users, OP_CODES::GC_Players_Info, names.size());
         }
     }
 }

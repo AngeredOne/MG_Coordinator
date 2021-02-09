@@ -28,8 +28,8 @@ namespace marxp
 
 enum OP_CODES : uint16
 {
-    MAIN_SetConn = 0x00001,
-    MAIN_ReConn = 0x00002,
+    MAIN_SetConn = 1,
+    MAIN_ReConn = 2,
     MAIN_Reg,
     GC_Games_Info,
     GC_Games_AllLobby,
@@ -39,6 +39,7 @@ enum OP_CODES : uint16
     GC_Lobby_Destroy,
     GC_Lobby_StartGame,
     GC_Players_Info,
+    OP_CODE_LAST
 };
 
 struct ReadWriteBytesCountException : public std::exception
@@ -88,11 +89,11 @@ public:
 
         if (isBlockable)
         {
-            read(*sock, buffer(packet_ptr.get(), sizeof(*packet_ptr.get())), ec);
+            read(*sock, buffer(packet_ptr.get(), sizeof(T)), ec);
         }
         else
         {
-            std::size_t length = socket->read_some(buffer(packet_ptr.get(), sizeof(*packet_ptr.get())), ec);
+            std::size_t length = socket->read_some(buffer(packet_ptr.get(), sizeof(T)), ec);
             if (length < sizeof(T))
             {
                 throw ReadWriteBytesCountException();
@@ -109,8 +110,8 @@ public:
 
         auto sock = socket.get();
 
-        std::size_t length = socket->write_some(buffer(packetToSend, sizeof(*packetToSend)), ec);
-        if (sizeof(*packetToSend > length))
+        std::size_t length = socket->write_some(buffer(packetToSend, sizeof(T)), ec);
+        if (sizeof(T) > length)
         {
             throw ReadWriteBytesCountException();
         }

@@ -18,7 +18,7 @@ target_include_directories(CoordinatorServer PRIVATE ${PostgreSQL_INCLUDE_DIRS})
 target_link_libraries(CoordinatorServer -lpthread ${PostgreSQL_LIBRARIES} -lpqxx -lpq -lboost_system)
 
 
-add_executable(TestingClient TestClient/main.cpp TestClient/Client.h Sources/MarxProtocol.h)
+add_executable(TestingClient TestClient/main.cpp TestClient/Client.h TestClient/Stream.cpp)
 target_link_libraries(TestingClient -lpthread -std=c++1z -lboost_system)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

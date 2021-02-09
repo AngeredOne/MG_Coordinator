@@ -1,4 +1,5 @@
 #include "ServerClient.h"
+#include "Streams.h"
 #include <chrono>
 
 using namespace marxp;
@@ -11,6 +12,9 @@ ServerClient::ServerClient(uint64 token, uint64 DataBaseID) : authtoken(token), 
 void ServerClient::InitClient(socket_ptr sock)
 {
     this->socket = sock;
+    if (!streamManager)
+        streamManager = std::make_shared<StreamManager>();
+    streamManager->Start(shared_from_this());
     if (!clientListenerThread)
     {
         clientListenerThread = std::make_shared<std::thread>(&ServerClient::WaitMessages, this);
@@ -19,26 +23,34 @@ void ServerClient::InitClient(socket_ptr sock)
 
 void ServerClient::WaitMessages()
 {
+
+    struct SystemData
+    {
+        uint16 opcode;
+        uint32 length;
+    };
+
     while (true)
     {
         try
         {
-            struct InitRequest
-            {
-                uint16 command;
-            };
+            // Read system block of raw bytes: code and lenght
+            char *data = new char[8];
+            auto readSize = read(*socket, buffer(data, 8));
 
-            auto request = CoordinatorServer::Get().ReadPacket<InitRequest>(socket, true);
-            CoordinatorServer::Get().CallHandler(static_cast<OP_CODES>(request->command), shared_from_this());
+            if (readSize < 8)
+                throw ReadWriteBytesCountException();
+
+            // Read data which bounded with that system block
+            auto sysData = reinterpret_cast<SystemData *>(data);
+            data = new char[sysData->length];
+            readSize = read(*socket, buffer(data, sysData->length));
+            if (readSize < sysData->length)
+                throw ReadWriteBytesCountException();
+            streamManager->ProceedDataOnPort(sysData->opcode, data, sysData->length);
         }
-        catch(const marxp::ReadWriteBytesCountException &e)
+        catch (std::exception &e)
         {
-            std::cerr << e.what() << std::endl;
-        }
-        catch (const std::exception &e)
-        {
-            if(WaitToFullDisconnect())
-            break;
         }
     }
 }
@@ -67,12 +79,18 @@ const socket_ptr ServerClient::GetSocket()
     return socket;
 }
 
-const uint64 ServerClient::GetAuthToken() 
+const std::shared_ptr<StreamManager> ServerClient::GetStreamManager()
+{
+    return streamManager;
+}
+
+const uint64 ServerClient::GetAuthToken()
 {
     return authtoken;
 }
 
-bool ServerClient::JoinLobby(lobby_ptr lobby) {
+bool ServerClient::JoinLobby(lobby_ptr lobby)
+{
     ExitLobby();
     lobby->clients.push_back(authtoken);
     inLobby = lobby;
@@ -80,13 +98,15 @@ bool ServerClient::JoinLobby(lobby_ptr lobby) {
     return true;
 }
 
-void ServerClient::ExitLobby() {
-    if (auto existsLobby = inLobby.lock()) {
+void ServerClient::ExitLobby()
+{
+    if (auto existsLobby = inLobby.lock())
+    {
         existsLobby->clients.remove(authtoken);
-        if (existsLobby->clients.size() == 0) {
+        if (existsLobby->clients.size() == 0)
+        {
             CoordinatorServer::Get().CloseLobby(existsLobby->gameid, existsLobby->id);
         }
         inLobby = std::weak_ptr<Lobby>();
-    
-    }    
+    }
 }

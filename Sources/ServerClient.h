@@ -1,6 +1,12 @@
 #pragma once
 #include <memory>
+#include <iostream>
+#include <queue>
 #include "Server.h"
+
+class LocalStream;
+class ServerClient;
+class StreamManager;
 
 class ServerClient : public std::enable_shared_from_this<ServerClient>
 {
@@ -14,57 +20,33 @@ public:
     void InitClient(socket_ptr socket);
     const uint64 GetAuthToken();
     const socket_ptr GetSocket();
+    const std::shared_ptr<StreamManager> GetStreamManager();
+
     //Lobbyfunctions
     bool JoinLobby(marxp::lobby_ptr lobby);
     void ExitLobby();
 
     template <class T>
-    std::vector<std::shared_ptr<T>> ReadDynamic()
+    bool SendDynamic(T *structToSend, uint16 opcode, uint16 count)
     {
+
         boost::system::error_code ec;
 
-        auto count = marxp::CoordinatorServer::Get().ReadPacket<uint16>(socket, true);
-        auto size = *count.get() * sizeof(T);
+        uint32 size = count * sizeof(T);
+        char *toSendChar = new char[size + 8];
 
-        char *collection_raw = new char[size];
+        std::memcpy(&toSendChar[0], &opcode, 2);
+        std::memcpy(&toSendChar[4], &size, 4);
+        std::memcpy(&toSendChar[8], structToSend, size);
 
-        std::size_t length = socket->read_some(buffer(collection_raw, size), ec);
-
-        if (length < size)
-        {
-            throw marxp::ReadWriteBytesCountException();
-        }
-
-        T *collection = reinterpret_cast<T *>(collection_raw);
-
-        std::vector<std::shared_ptr<T>> out;
-
-        for (int i = 0; i < *count.get(); ++i)
-        {
-            out.push_back(std::make_shared<T>(collection[i]));
-        }
-
-        return out;
-    }
-
-    template <class T>
-    bool SendDynamic(T *structToSend, uint16 count)
-    {
-        boost::system::error_code ec;
-
-        marxp::CoordinatorServer::Get().SendPacket(socket, &count);
-        auto size = count * sizeof(T);
-
-        char *toSendChar = new char[size];
-        std::memcpy(toSendChar, structToSend, size);
-
-        std::size_t length = socket->write_some(buffer(toSendChar, size), ec);
+       std::size_t length = socket->write_some(buffer(toSendChar, size + 8), ec);
         delete[] toSendChar;
 
         if (size > length)
         {
             throw marxp::ReadWriteBytesCountException();
         }
+        return true;
     }
 
 private:
@@ -72,8 +54,10 @@ private:
     float timeForReconnect = 10;
     socket_ptr socket;
     std::shared_ptr<std::thread> clientListenerThread = nullptr;
+    std::shared_ptr<StreamManager> streamManager = nullptr;
     std::weak_ptr<marxp::Lobby> inLobby;
 
     void WaitMessages();
+
     bool WaitToFullDisconnect();
 };

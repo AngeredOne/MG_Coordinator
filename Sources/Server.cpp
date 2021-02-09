@@ -26,7 +26,7 @@ void CoordinatorServer::Listen()
     tcp::endpoint listenEP(ip::tcp::v4(), port);
     acceptor = new tcp::acceptor(service, listenEP);
 
-    std::cout << "Server begin listening at port " << port << std::endl;
+    std::cout << "\nServer begin listening at port " << port << std::endl;
     while (true)
     {
         socket_ptr sock(new tcp::socket(service));
